@@ -174,7 +174,7 @@ class CLIDriver(object):
     def __maven(self):
 
         if os.getenv('CDP_M2_LOCAL_REPOSITORY', None) is None:
-            os.environ['CDP_M2_LOCAL_REPOSITORY'] = '/m2/repository'
+            os.environ['CDP_M2_LOCAL_REPOSITORY'] = './.m2/repository'
 
         force_git_config = False
 
@@ -208,8 +208,7 @@ class CLIDriver(object):
 
         self._cmd.run_command('cp /cdp/maven/settings.xml %s' % settings)
 
-        maven_cmd = DockerCommand(self._cmd, 'maven:%s' % (self._context.opt['--docker-version']), self._context.opt['--volume-from'],
-            volumes = ['%s:%s' % (os.environ['CDP_M2_LOCAL_REPOSITORY'], os.environ['CDP_M2_LOCAL_REPOSITORY'])])
+        maven_cmd = DockerCommand(self._cmd, 'maven:%s' % (self._context.opt['--docker-version']), self._context.opt['--volume-from'])
         maven_cmd.run(command)
 
 
