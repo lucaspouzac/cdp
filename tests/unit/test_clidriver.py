@@ -175,6 +175,7 @@ class TestCliDriver(unittest.TestCase):
         image_version = '3.5-jdk-8'
         image_name_git = 'ouestfrance/cdp-git:latest'
         goals = 'clean install -DskipTests'
+        m2_repo = '/m2/repository'
         sleep = 10
         verif_cmd = [
             {'cmd': 'env', 'dry_run': False, 'output': 'unnecessary'},
@@ -186,7 +187,7 @@ class TestCliDriver(unittest.TestCase):
             {'cmd': self.__get_rundocker_cmd(image_name_git, 'merge %s --no-commit --no-ff' % TestCliDriver.ci_commit_sha, 'k8s'), 'output': 'unnecessary'},
             {'cmd': 'cp /cdp/maven/settings.xml maven-settings.xml', 'output': 'unnecessary'},
             {'cmd': 'docker pull maven:%s' % (image_version), 'output': 'unnecessary'},
-            {'cmd': self.__get_rundocker_cmd('maven:%s' % image_version, 'mvn %s -s maven-settings.xml' % goals, 'k8s', False), 'output': 'unnecessary'},
+            {'cmd': self.__get_rundocker_cmd('maven:%s' % image_version, 'mvn %s -Dmaven.repo.local=%s -s maven-settings.xml' % (goals, m2_repo), 'k8s', False, volumes = ['%s:%s' % (m2_repo, m2_repo)]), 'output': 'unnecessary'},
             {'cmd': 'sleep %s' % sleep, 'output': 'unnecessary'}
         ]
         self.__run_CLIDriver({ 'maven', '--verbose', '--docker-version=%s' % image_version, '--goals=%s' % goals, '--simulate-merge-on=%s' % branch_name, '--sleep=%s' % sleep }, verif_cmd)
@@ -198,6 +199,7 @@ class TestCliDriver(unittest.TestCase):
         image_version = '3.5-jdk-8'
         image_name_git = 'ouestfrance/cdp-git:latest'
         goals = 'clean install -DskipTests'
+        m2_repo = '/m2/repository'
         maven_opts = '-Djava.awt.headless=true -Dmaven.repo.local=./.m2/repository -e'
         verif_cmd = [
             {'cmd': 'docker pull %s' % image_name_git, 'output': 'unnecessary'},
@@ -206,7 +208,7 @@ class TestCliDriver(unittest.TestCase):
             {'cmd': self.__get_rundocker_cmd(image_name_git, 'checkout %s' % TestCliDriver.ci_commit_ref_name, 'k8s'), 'output': 'unnecessary'},
             {'cmd': 'cp /cdp/maven/settings.xml maven-settings.xml', 'output': 'unnecessary'},
             {'cmd': 'docker pull maven:%s' % (image_version), 'output': 'unnecessary'},
-            {'cmd': self.__get_rundocker_cmd('maven:%s' % image_version, 'mvn --batch-mode org.apache.maven.plugins:maven-release-plugin:2.5.3:prepare org.apache.maven.plugins:maven-release-plugin:2.5.3:perform -Dresume=false -DautoVersionSubmodules=true -DdryRun=false -DscmCommentPrefix="[ci skip]" -Dproject.scm.id=git -DreleaseProfiles=release -Darguments="-DskipTest -DskipITs -Dproject.scm.id=git -DaltDeploymentRepository=release::default::%s/%s %s" %s -s maven-settings.xml' % (TestCliDriver.cdp_repository_url, TestCliDriver.cdp_repository_maven_release, maven_opts, maven_opts), 'k8s', False), 'output': 'unnecessary'}
+            {'cmd': self.__get_rundocker_cmd('maven:%s' % image_version, 'mvn --batch-mode org.apache.maven.plugins:maven-release-plugin:2.5.3:prepare org.apache.maven.plugins:maven-release-plugin:2.5.3:perform -Dresume=false -DautoVersionSubmodules=true -DdryRun=false -DscmCommentPrefix="[ci skip]" -Dproject.scm.id=git -DreleaseProfiles=release -Darguments="-DskipTest -DskipITs -Dproject.scm.id=git -DaltDeploymentRepository=release::default::%s/%s %s -Dmaven.repo.local=%s" %s -Dmaven.repo.local=%s -s maven-settings.xml' % (TestCliDriver.cdp_repository_url, TestCliDriver.cdp_repository_maven_release, maven_opts, m2_repo, maven_opts, m2_repo), 'k8s', False, volumes = ['%s:%s' % (m2_repo, m2_repo)]), 'output': 'unnecessary'}
         ]
 
         self.__run_CLIDriver({ 'maven', '--docker-version=%s' % image_version, '--deploy=release'},
@@ -220,6 +222,7 @@ class TestCliDriver(unittest.TestCase):
         maven_release_version = '1.0.0'
         image_name_git = 'ouestfrance/cdp-git:latest'
         goals = 'clean install -DskipTests'
+        m2_repo = '/m2/repository'
         verif_cmd = [
             {'cmd': 'docker pull %s' % image_name_git, 'output': 'unnecessary'},
             {'cmd': self.__get_rundocker_cmd(image_name_git, 'config user.email \"%s\"' % TestCliDriver.gitlab_user_email, 'k8s'), 'output': 'unnecessary'},
@@ -227,7 +230,7 @@ class TestCliDriver(unittest.TestCase):
             {'cmd': self.__get_rundocker_cmd(image_name_git, 'checkout %s' % TestCliDriver.ci_commit_ref_name, 'k8s'), 'output': 'unnecessary'},
             {'cmd': 'cp /cdp/maven/settings.xml maven-settings.xml', 'output': 'unnecessary'},
             {'cmd': 'docker pull maven:%s' % (image_version), 'output': 'unnecessary'},
-            {'cmd': self.__get_rundocker_cmd('maven:%s' % image_version, 'mvn --batch-mode org.apache.maven.plugins:maven-release-plugin:%s:prepare org.apache.maven.plugins:maven-release-plugin:%s:perform -Dresume=false -DautoVersionSubmodules=true -DdryRun=false -DscmCommentPrefix="[ci skip]" -Dproject.scm.id=git -DreleaseProfiles=release -Darguments="-DskipTest -DskipITs -Dproject.scm.id=git -DaltDeploymentRepository=release::default::%s/%s" -s maven-settings.xml' % (maven_release_version, maven_release_version, TestCliDriver.cdp_repository_url, TestCliDriver.cdp_repository_maven_release), 'k8s', False), 'output': 'unnecessary'}
+            {'cmd': self.__get_rundocker_cmd('maven:%s' % image_version, 'mvn --batch-mode org.apache.maven.plugins:maven-release-plugin:%s:prepare org.apache.maven.plugins:maven-release-plugin:%s:perform -Dresume=false -DautoVersionSubmodules=true -DdryRun=false -DscmCommentPrefix="[ci skip]" -Dproject.scm.id=git -DreleaseProfiles=release -Darguments="-DskipTest -DskipITs -Dproject.scm.id=git -DaltDeploymentRepository=release::default::%s/%s -Dmaven.repo.local=%s" -Dmaven.repo.local=%s -s maven-settings.xml' % (maven_release_version, maven_release_version, TestCliDriver.cdp_repository_url, TestCliDriver.cdp_repository_maven_release, m2_repo, m2_repo), 'k8s', False, volumes = ['%s:%s' % (m2_repo, m2_repo)]), 'output': 'unnecessary'}
         ]
 
         self.__run_CLIDriver({ 'maven', '--docker-version=%s' % image_version, '--deploy=release', '--maven-release-plugin=%s' % maven_release_version}, verif_cmd)
@@ -237,10 +240,11 @@ class TestCliDriver(unittest.TestCase):
         branch_name = 'master'
         image_version = '3.5-jdk-8'
         goals = 'clean install -DskipTests'
+        m2_repo = '/m2/repository'
         verif_cmd = [
             {'cmd': 'cp /cdp/maven/settings.xml maven-settings.xml', 'output': 'unnecessary'},
             {'cmd': 'docker pull maven:%s' % (image_version), 'output': 'unnecessary'},
-            {'cmd': self.__get_rundocker_cmd('maven:%s' % image_version, 'mvn deploy -DskipTest -DskipITs -DaltDeploymentRepository=snapshot::default::%s/%s -s maven-settings.xml' % (TestCliDriver.cdp_repository_url, TestCliDriver.cdp_repository_maven_snapshot), 'k8s', False), 'output': 'unnecessary'}
+            {'cmd': self.__get_rundocker_cmd('maven:%s' % image_version, 'mvn deploy -DskipTest -DskipITs -DaltDeploymentRepository=snapshot::default::%s/%s -Dmaven.repo.local=%s -s maven-settings.xml' % (TestCliDriver.cdp_repository_url, TestCliDriver.cdp_repository_maven_snapshot, m2_repo), 'k8s', False, volumes = ['%s:%s' % (m2_repo, m2_repo)]), 'output': 'unnecessary'}
         ]
 
         self.__run_CLIDriver({ 'maven', '--docker-version=%s' % image_version, '--deploy=snapshot' }, verif_cmd)
@@ -683,6 +687,7 @@ class TestCliDriver(unittest.TestCase):
             print '************************** ERROR *******************************'
             print e
             print '****************************************************************'
+            raise e
         finally:
             try:
                 self.assertEqual(docker_host, os.environ['DOCKER_HOST'])
@@ -692,8 +697,11 @@ class TestCliDriver(unittest.TestCase):
                 for key,val in env_vars.items():
                     del os.environ[key]
 
-    def __get_rundocker_cmd(self, docker_image, prg_cmd, volume_from = None, with_entrypoint = True):
+    def __get_rundocker_cmd(self, docker_image, prg_cmd, volume_from = None, with_entrypoint = True, volumes = []):
         run_docker_cmd = 'docker run --rm -e DOCKER_HOST $(env | grep "\(^CI\|^CDP\|^AWS\|^GIT\|^KUBERNETES\)" | cut -f1 -d= | sed \'s/^/-e /\') -v /var/run/docker.sock:/var/run/docker.sock'
+
+        for volume in volumes:
+            run_docker_cmd = '%s -v %s' % (run_docker_cmd, volume)
 
         if volume_from == 'k8s':
             run_docker_cmd = '%s --volumes-from $(docker ps -aqf "name=k8s_build_${HOSTNAME}")' % (run_docker_cmd)

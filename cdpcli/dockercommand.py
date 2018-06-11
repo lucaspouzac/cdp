@@ -7,17 +7,21 @@ LOG.setLevel(logging.INFO)
 
 class DockerCommand(object):
 
-    def __init__(self, cmd, docker_image, volume_from = None, with_entrypoint = False):
+    def __init__(self, cmd, docker_image, volume_from = None, with_entrypoint = False, volumes = []):
         self._cmd = cmd
         self._docker_image = docker_image
         self._volume_from = volume_from
         self._with_entrypoint = with_entrypoint
+        self._volumes = volumes
         self._cmd.run_command('docker pull %s' % docker_image)
 
     def run(self, prg_cmd, dry_run = None, timeout = None):
         run_docker_cmd = 'docker run --rm -e DOCKER_HOST'
         run_docker_cmd = '%s $(env | grep "\(^CI\|^CDP\|^AWS\|^GIT\|^KUBERNETES\)" | cut -f1 -d= | sed \'s/^/-e /\')' % (run_docker_cmd)
         run_docker_cmd = '%s -v /var/run/docker.sock:/var/run/docker.sock' % (run_docker_cmd)
+
+        for volume in self._volumes:
+            run_docker_cmd = '%s -v %s' % (run_docker_cmd, volume)
 
         if self._volume_from == 'k8s':
             run_docker_cmd = '%s --volumes-from $(docker ps -aqf "name=k8s_build_${HOSTNAME}")' % (run_docker_cmd)

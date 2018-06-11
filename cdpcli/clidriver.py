@@ -172,6 +172,10 @@ class CLIDriver(object):
         docker_image_cmd.run(self._context.opt['--command'])
 
     def __maven(self):
+
+        if os.getenv('CDP_M2_LOCAL_REPOSITORY', None) is None:
+            os.environ['CDP_M2_LOCAL_REPOSITORY'] = '/m2/repository'
+
         force_git_config = False
 
         settings = 'maven-settings.xml'
@@ -187,6 +191,8 @@ class CLIDriver(object):
                 if os.getenv('MAVEN_OPTS', None) is not None:
                     arguments = '%s %s' % (arguments, os.environ['MAVEN_OPTS'])
 
+                arguments = '%s -Dmaven.repo.local=%s' % (arguments, os.environ['CDP_M2_LOCAL_REPOSITORY'])
+
                 command = '%s -DreleaseProfiles=release -Darguments="%s"' % (command, arguments)
             else:
                 command = 'deploy -DskipTest -DskipITs -DaltDeploymentRepository=snapshot::default::%s/%s' % (os.environ['CDP_REPOSITORY_URL'], os.environ['CDP_REPOSITORY_MAVEN_SNAPSHOT'])
@@ -195,13 +201,15 @@ class CLIDriver(object):
         if os.getenv('MAVEN_OPTS', None) is not None:
             command = '%s %s' % (command, os.environ['MAVEN_OPTS'])
 
+        command = '%s -Dmaven.repo.local=%s' % (command, os.environ['CDP_M2_LOCAL_REPOSITORY'])
         command = 'mvn %s %s' % (command, '-s %s' % settings)
 
         self.__simulate_merge_on(force_git_config)
 
         self._cmd.run_command('cp /cdp/maven/settings.xml %s' % settings)
 
-        maven_cmd = DockerCommand(self._cmd, 'maven:%s' % (self._context.opt['--docker-version']), self._context.opt['--volume-from'])
+        maven_cmd = DockerCommand(self._cmd, 'maven:%s' % (self._context.opt['--docker-version']), self._context.opt['--volume-from'],
+            volumes = ['%s:%s' % (os.environ['CDP_M2_LOCAL_REPOSITORY'], os.environ['CDP_M2_LOCAL_REPOSITORY'])])
         maven_cmd.run(command)
 
 
